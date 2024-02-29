@@ -23,11 +23,13 @@ npm i -g @angular/cli@latest
 # Generar nuevo proyecto de Angular (desde 0)
 
 ng new ActivityBookings --inline-style --inline-template --prefix=lab --ssr --style=css
+
 npm install
 
 # Descargar proyecto de Git e instala dependencias (proyecto ya creado)
 
 git clone https://github.com/TrainingITCourses/softtek_angular_basics.git
+
 npm install
 
 # Compilar un proyecto (esto lanza "ng build")
