@@ -1,5 +1,13 @@
 import { CurrencyPipe, DatePipe, UpperCasePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  WritableSignal,
+  computed,
+  effect,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Activity } from '../domain/activity.type';
 
@@ -20,18 +28,38 @@ import { Activity } from '../domain/activity.type';
       </header>
       <main>
         <p>
-          Current participants: <b>{{ currentParticipants }}</b>
+          Current participants: <b>{{ currentParticipants() }}</b>
         </p>
         <form>
-          <label for="newParticipants">New participants:</label>
-          <input name="newParticipants" type="number" [(ngModel)]="newParticipants" />
+          <label for="newParticipants"
+            >New participants:
+            <span>
+              @for(participant of participants(); track participant.id) {
+              <span>🏃‍♂️{{ participant.id }}</span>
+              } @empty {
+              <span>🕸️</span>
+              }
+            </span>
+          </label>
+          <input
+            name="newParticipants"
+            type="number"
+            min="0"
+            [max]="maxNewParticipants()"
+            [ngModel]="newParticipants()"
+            (ngModelChange)="onNewParticipantsChange($event)"
+          />
         </form>
-        <p>
-          Total participants: <b>{{ currentParticipants + newParticipants }}</b>
-        </p>
+        <div>
+          Total participants: <b>{{ totalParticipants() }}</b>
+        </div>
       </main>
       <footer>
+        @if(canBook()){
         <button class="primary" (click)="onBookingClick()">Book now</button>
+        }@else {
+        <p>Book your place</p>
+        }
       </footer>
     </article>
   `,
@@ -75,11 +103,46 @@ export class BookingsComponent {
     duration: 2,
     userId: 1,
   };
-  currentParticipants = 3;
+  currentParticipants: WritableSignal<number> = signal(3);
 
-  newParticipants = 1;
+  participants: WritableSignal<{ id: number }[]> = signal([]);
+
+  newParticipants: WritableSignal<number> = signal(0);
+
+  totalParticipants: Signal<number> = computed(() => {
+    return this.currentParticipants() + this.newParticipants();
+  });
+
+  maxNewParticipants = computed(() => this.activity.maxParticipants - this.currentParticipants());
+
+  isSoldOut = computed(() => this.totalParticipants() >= this.activity.maxParticipants);
+
+  canBook = computed(() => this.newParticipants() > 0);
+
+  constructor() {
+    effect(() => {
+      if (this.isSoldOut()) {
+        console.log('Se ha vendido todo');
+      } else {
+        console.log('Hay entradas disponibles');
+      }
+    });
+  }
+
+  onNewParticipantsChange(newParticipants: number) {
+    this.newParticipants.set(newParticipants);
+    this.participants.update((participants) => {
+      participants = [];
+      for (let i = 1; i <= newParticipants; i++) {
+        participants.push({ id: i });
+      }
+      return participants;
+    });
+  }
 
   onBookingClick() {
-    console.log('Booking saved for participants: ', this.newParticipants);
+    console.log('Booking saved for participants: ', this.newParticipants());
+    this.currentParticipants.set(this.totalParticipants());
+    this.newParticipants.set(0);
   }
 }
